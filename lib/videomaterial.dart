@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:chewie/chewie.dart';
-
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:exampur_mobile/downloads/downloads.dart';
 
 import 'package:exampur_mobile/utils/appBar.dart';
@@ -24,9 +25,18 @@ class MyMaterialViedo extends StatefulWidget {
 class _MyMaterialViedoState extends State<MyMaterialViedo> {
   late VideoPlayerController videoPlayerController;
   late ChewieController chewieController;
-
+  ReceivePort _port = ReceivePort();
   @override
   void initState() {
+    IsolateNameServer.registerPortWithName(_port.sendPort, 'downloader_send_port');
+    _port.listen((dynamic data) {
+      String id = data[0];
+      DownloadTaskStatus status = data[1];
+      int progress = data[2];
+      setState((){ });
+    });
+
+    FlutterDownloader.registerCallback(downloadCallback);
     // print(widget.url);
     super.initState();
     videoPlayerController = VideoPlayerController.network(widget.url);
@@ -46,10 +56,16 @@ class _MyMaterialViedoState extends State<MyMaterialViedo> {
   }
   @override
   void dispose() {
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
     videoPlayerController.dispose();
     chewieController.dispose();
     super.dispose();
   }
+  static void downloadCallback(String id, DownloadTaskStatus status, int progress) {
+    final SendPort send = IsolateNameServer.lookupPortByName('downloader_send_port')!;
+    send.send([id, status, progress]);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -80,9 +96,18 @@ class _MyMaterialViedoState extends State<MyMaterialViedo> {
     borderRadius: BorderRadius.all(Radius.circular(8))),child: Center(child: Text(StringConstant.downloadVideo,style: TextStyle(color: Colors.white,fontSize: 15)
             ))),
           )*/
-           Center(child: CustomAmberButton(onPressed: (){
-             AppConstants.checkPermission(context, Permission.storage, requestVideoDownload);
-           },text: StringConstant.downloadVideo,))
+           Center(child: CustomAmberButton(onPressed: () async {
+      final status = await Permission.storage.request();
+
+      if(status.isGranted) {
+        requestVideoDownload();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Wait the downloading is starting")));
+      }else{
+
+        print('Permission Denied');
+      } },text: StringConstant.downloadVideo,))
         ],
       ),
     );

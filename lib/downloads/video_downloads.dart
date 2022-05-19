@@ -154,8 +154,8 @@ class _DownloadedVideoState extends State<DownloadedVideo> {
                           ),
                           subtitle: Row(children: [
                             _status == DownloadTaskStatus.failed ? Text('Failed') :
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
+                            Flexible(child:Padding(
+                              padding: const EdgeInsets.all( 10),
                               child: CustomAmberButton(text: StringConstant.watch, onPressed: (){
                                 if (_status == DownloadTaskStatus.complete) {
                                   Navigator.push(
@@ -165,7 +165,7 @@ class _DownloadedVideoState extends State<DownloadedVideo> {
                                       )
                                   );
                                 }
-                              },),
+                              },),),
                             )
 
                             // InkWell(
